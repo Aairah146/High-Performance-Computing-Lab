@@ -1,0 +1,105 @@
+Script started on Mon 20 Apr 2026 16:16:08 AM IST
+[23bcs065@mepcolinux ex9]$cat trapezoidal.c
+#include <stdio.h>
+#include <omp.h>
+double f(double x) {
+    return x*x;
+}
+int main() {
+    double a,b,h,sum = 0.0,result;
+    int n,i;
+    printf("Enter lower limit (a): ");
+    scanf("%lf",&a);
+    printf("Enter upper limit (b): ");
+    scanf("%lf",&b);
+    printf("Enter number of trapezoids (n): ");
+    scanf("%d",&n);
+    h=(b-a)/n;
+    sum=0.0;
+    #pragma omp parallel for reduction(+:sum)
+    for(i=1;i<n;i++){
+        sum+=f(a+i*h);
+    }
+    result=h*((f(a)+f(b))/2+sum);
+    printf("\nResult using reduction: %.3lf\n", result);
+    sum=0.0;
+    #pragma omp parallel
+    {
+        double local_sum=0.0;
+        #pragma omp for
+        for (i=1;i<n;i++) {
+            local_sum+=f(a+i*h);
+        }
+        #pragma omp critical
+        {
+            sum+=local_sum;
+        }
+    }
+    result=h*((f(a)+f(b))/2+sum);
+    printf("Result using critical: %.3lf\n",result);
+    return 0;
+}
+[23bcs065@mepcolinux ex9]$./trap
+Enter lower limit (a): 5
+Enter upper limit (b): 10
+Enter number of trapezoids (n): 2
+
+Result using reduction: 296.875
+Result using critical: 296.875
+[23bcs065@mepcolinux ex9]$cat count.c
+#include<stdio.h>
+#include<stdlib.h>
+#include<omp.h>
+int main(){
+	int target,n,i,count=0;
+	printf("Enter the size of array: ");
+	scanf("%d",&n);
+	printf("Enter the target value: ");
+	scanf("%d",&target);
+	int *arr=(int*)malloc(sizeof(int)*n);
+	printf("Enter the values of array: ");
+	for(i=0;i<n;i++)
+		scanf("%d",&arr[i]);
+#pragma omp parallel for reduction (+:count)
+	for(i=0;i<n;i++)
+		if(arr[i]<target)
+			count+=1;
+	printf("The total number of values less than target: %d\n",count);
+}
+[23bcs065@mepcolinux ex9]$./count
+Enter the size of array: 5
+Enter the target value: 3
+Enter the values of array: 1 2 3 4 5
+The total number of values less than target: 2
+[23bcs065@mepcolinux ex9]$cat max_element.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+int main(){
+	int n,maxi=0,i;
+	printf("Enter the size of the collection: ");
+	scanf("%d",&n);
+	int *arr=(int *)malloc(sizeof(int)*n);
+	printf("Enter the elements in the collection: \n");
+	for(i=0;i<n;i++){
+		scanf("%d",&arr[i]);
+	}
+	#pragma omp parallel for reduction(max:maxi)
+	for(i=0;i<n;i++){
+		if (arr[i]>maxi){
+			maxi=arr[i];
+		}
+	}
+	printf("The maximum element in the collection: %d\n",maxi);
+	free(arr);
+	return 0;
+}
+[23bcs065@mepcolinux ex9]$./max
+Enter the size of the collection: 5
+Enter the elements in the collection: 
+1 2 3 4 5
+The maximum element in the collection: 5
+[23bcs065@mepcolinux ex9]$exit
+exit
+
+Script done on Tuesday 20 Apr 2026 16:17:41 AM IST

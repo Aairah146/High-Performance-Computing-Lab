@@ -1,0 +1,180 @@
+Script started on Saturday 25 April 2026 03:05:43 PM IST
+[23bcs065@mepcolinux parallel_for]$cat add.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+int main() {
+    int i,j,N;
+    int *A,*B,*C;
+
+    printf("Enter size of array:");
+    scanf("%d",&N);
+    A = (int*) malloc(N * sizeof(int));
+    B = (int*) malloc(N * sizeof(int));
+    C = (int*) malloc(N * sizeof(int));
+
+    for(i = 0; i < N; i++){
+	    A[i]=rand()%5;
+	    B[i]=rand()%5;
+    }
+    printf("Input:\nA: ");
+    for(i=0;i<N;i++){
+	    printf("%d ",A[i]);
+    }
+    printf("\nB: ");
+    for(i=0;i<N;i++){
+	    printf("%d ", B[i]);
+    }
+    #pragma omp parallel for 
+    for(i = 0; i < N; i++) {
+	    C[i] = A[i] + B[i];
+    }
+    printf("\nOutput:\nC: ");    
+    for(i = 0; i < N; i++) {
+	    printf("%d ",C[i]);
+    }
+    printf("\n");
+    free(A);
+
+    return 0;
+}
+[23bcs065@mepcolinux parallel_for]$./add
+Enter size of array:5
+Input:
+A: 3 2 3 1 4 
+B: 1 0 0 2 1 
+Output:
+C: 4 2 3 3 5 
+[23bcs065@mepcolinux parallel_for]$cat const.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+int main() {
+    int i,N,CONST_VAL;
+    int *A;
+
+    printf("Enter no of elements:");
+    scanf("%d",&N);
+    A = (int*) malloc(N * sizeof(int)); 
+    for(i = 0; i < N; i++) {
+        A[i] = rand()%10;
+    }
+    printf("Enter const value to be added: ");
+    scanf("%d",&CONST_VAL);
+
+    printf("\nInput taken : ");
+    for(i = 0;i < N;i++){
+            printf("%d ",A[i]);
+    }    
+    #pragma omp parallel for
+    for(i = 0; i < N; i++) {
+        A[i] = A[i] + CONST_VAL;
+    }    
+    printf("\nOutput given: ");
+    for(i = 0; i < N; i++) {
+        printf("%d ", A[i]);
+    }
+
+    printf("\n");
+    free(A);
+
+    return 0;
+}
+[23bcs065@mepcolinux parallel_for]$./const
+Enter no of elements:5
+Enter const value to be added: 2
+
+Input taken : 3 6 7 5 3 
+Output given: 5 8 9 7 5 
+[23bcs065@mepcolinux parallel_for]$cat matrix.c
+#include<stdio.h>
+#include<stdlib.h>
+#include<omp.h>
+int main(){
+	int i,j,n;
+	printf("Enter the size of matrix: ");
+	scanf("%d",&n);
+	int **mat=(int**)malloc(sizeof(int*)*n);
+	printf("The generated matrix:\n");
+	for (i=0;i<n;i++){
+		mat[i]=(int*)malloc(sizeof(int)*n);
+		for(j=0;j<n;j++){
+			mat[i][j]=rand()%100;
+			printf("%d ",mat[i][j]);
+		}
+		printf("\n");
+	}
+	int t=n/2;
+#pragma omp parallel for
+	for(i=0;i<n;i++){
+		for(j=0;j<t;j++){
+			int temp=mat[i][j];
+			mat[i][j]=mat[i][n-1-j];
+			mat[i][n-1-j]=temp;
+		}
+	}
+	printf("The mirror form:\n");
+	for(i=0;i<n;i++){
+		for(j=0;j<n;j++)
+			printf("%d ",mat[i][j]);
+		printf("\n");
+	}
+	free(mat);
+}
+
+[23bcs065@mepcolinux parallel_for]$./mat
+Enter the size of matrix: 5
+The generated matrix:
+83 86 77 15 93 
+35 86 92 49 21 
+62 27 90 59 63 
+26 40 26 72 36 
+11 68 67 29 82 
+The mirror form:
+93 15 77 86 83 
+21 49 92 86 35 
+63 59 90 27 62 
+36 72 26 40 26 
+82 29 67 68 11 
+[23bcs065@mepcolinux parallel_for]$cat slid.c
+#include<stdio.h>
+#include<stdlib.h>
+#include<omp.h>
+int main(){
+	int i,j,n,s;
+	printf("Enter the size of array: ");
+	scanf("%d",&n);
+	printf("Enter the size of sliding window: ");
+	scanf("%d",&s);
+	int t=n-s+1;
+	int *arr=(int*)malloc(sizeof(int)*n);
+	int *sums=(int*)malloc(sizeof(int)*t);
+	printf("The generated array: ");
+	for(i=0;i<n;i++){
+		arr[i]=rand()%100;
+		printf("%d ",arr[i]);
+	}
+	printf("\n");
+#pragma omp parallel for
+	for(i=0;i<t;i++){
+		int locsum=0;
+		for(j=i;j<i+s;j++)
+			locsum+=arr[j];
+		sums[i]=locsum;
+	}
+	printf("Window sum: ");
+	for (i=0;i<t;i++)
+		printf("%d ",sums[i]);
+	printf("\n");
+}
+[23bcs065@mepcolinux parallel_for]$./sli
+Enter the size of array: 5
+Enter the size of sliding window: 2
+The generated array: 83 86 77 15 93 
+Window sum: 169 163 92 108 
+[23bcs065@mepcolinux parallel_for]$exit
+exit
+
+Script done on Saturday 25 April 2026 03:06:25 PM IST

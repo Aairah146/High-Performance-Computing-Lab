@@ -1,0 +1,71 @@
+cat array.c
+#include<stdio.h>
+#include<stdlib.h>
+#include<mpi.h>
+#include<time.h>
+int main(){
+	int rank,size;
+	int *array=NULL;
+	int *sub_array=NULL;
+	int n=100;
+	int search_num;
+	int local_count=0,total_count=0;
+	int element_per_proc;
+	int i;
+	MPI_Init(NULL,NULL);
+	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&size);
+	element_per_proc=n/size;
+	if(rank==0){
+		printf("Enter number to find frequency:");
+		fflush(stdout);
+		scanf("%d",&search_num);
+		array=(int*)malloc(n*sizeof(int));
+		srand(time(NULL));
+		printf("Array:\n");
+	
+		for(i=0;i<n;i++){
+			array[i]=rand()%10;
+			printf("%d ",array[i]);
+		}
+		printf("\n");
+	}
+	MPI_Bcast(&search_num,1,MPI_INT,0,MPI_COMM_WORLD);
+	sub_array=(int*)malloc(element_per_proc*sizeof(int));
+	MPI_Scatter(array,element_per_proc,MPI_INT,sub_array,element_per_proc,MPI_INT,0,MPI_COMM_WORLD);
+	for(i=0;i<element_per_proc;i++){
+		if(sub_array[i]==search_num){
+			local_count++;
+		}
+	}
+	MPI_Reduce(&local_count,&total_count,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+	if(rank==0){
+		printf("\nFrequency of %d=%d\n",search_num,total_count);
+	}
+	free(sub_array);
+	if(rank==0){
+		free(array);
+	}
+	MPI_Finalize();
+	return 0;
+}
+
+
+root@cil21:/home/student/23bcs065/ex4# mpicc -o exe array.c
+root@cil21:/home/student/23bcs065/ex4# mpiexec --allow-run-as-root -n 4 ./exe
+Enter number to find frequency:4
+Array:
+3 4 4 0 8 7 6 6 9 5 2 2 4 3 8 8 4 3 9 8 1 7 5 1 8 1 1 3 9 9 6 2 5 3 4 4 2 0 2 2 6 4 4 2 8 2 0 4 8 1 3 9 0 8 2 8 2 6 1 1 5 0 6 0 5 0 6 7 1 9 9 9 3 6 3 3 8 3 8 6 6 3 7 6 1 0 5 5 6 8 9 3 0 5 5 7 7 2 5 8 
+
+Frequency of 4=9
+root@cil21:/home/student/23bcs065/ex4# mpiexec --allow-run-as-root -n 4 ./exe
+Enter number to find frequency:1
+Array:
+5 9 5 6 0 8 1 9 9 0 9 2 4 7 2 4 4 2 0 5 3 7 0 3 6 3 8 1 9 9 2 7 0 9 3 0 0 7 2 9 9 1 3 3 8 7 9 4 9 2 1 4 9 3 0 6 6 0 9 8 1 3 5 2 3 0 4 5 9 6 4 8 9 9 4 7 6 3 4 8 5 5 4 7 1 4 5 7 6 4 5 8 7 2 0 2 3 6 7 4 
+
+Frequency of 1=6
+root@cil21:/home/student/23bcs065/ex4# exit
+exit
+
+Script done on 2026-01-27 17:43:36+0530
+

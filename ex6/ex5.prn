@@ -1,0 +1,257 @@
+Script started on Tuesday 03 March 2026 11:26:51 AM IST
+[23bcs065@mepcolinux ex6]$cat hello.c
+#include<stdio.h>
+#include<stdlib.h>
+#include<pthread.h>
+
+int thread_count=0;
+void* Hello(void* rank);
+int main(int argc,char* argv[]){
+        long thread;
+        pthread_t* thread_handles;
+        thread_count=strtol(argv[1],NULL,10);
+        thread_handles=malloc(thread_count*sizeof(pthread_t));
+        printf("Hello From Main Thread\n");
+        for(thread=0;thread<thread_count;thread++){
+                pthread_create(&thread_handles[thread],NULL,Hello,(void*)thread);
+        }
+        //printf("Hello From Main Thread\n");
+        for(thread=0;thread<thread_count;thread++){
+                pthread_join(thread_handles[thread],NULL);
+        }
+        free(thread_handles);
+        return 0;
+}
+
+void* Hello(void* rank){
+        long my_rank=(long)rank;
+        printf("Hello From Thread %ld of %d\n",my_rank,thread_count);
+}
+[23bcs065@mepcolinux ex6]$gcc -pthread hello.c -o hello
+[23bcs065@mepcolinux ex6]$./hello 3
+Hello From Main Thread
+Hello From Thread 1 of 3
+Hello From Thread 0 of 3
+Hello From Thread 2 of 3
+[23bcs065@mepcolinux ex6]$./hello 7
+Hello From Main Thread
+Hello From Thread 1 of 7
+Hello From Thread 4 of 7
+Hello From Thread 2 of 7
+Hello From Thread 3 of 7
+Hello From Thread 0 of 7
+Hello From Thread 5 of 7
+Hello From Thread 6 of 7
+[23bcs065@mepcolinux ex6]$cat mat.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+
+#define MAX 10
+
+int A[MAX][MAX], B[MAX][MAX], add[MAX][MAX], mul[MAX][MAX];
+int r1, r2, c1, c2;
+
+void* mat_add(void* arg) {
+    int i, j;
+    for (i = 0; i < r1; i++)
+        for (j = 0; j < c1; j++)
+            add[i][j] = A[i][j] + B[i][j];
+    
+    printf("Addition Completed\n");
+    pthread_exit(NULL);
+}
+
+void* mat_mul(void* arg) {
+    int i, j, k;
+    for (i = 0; i < r2; i++)
+        for (j = 0; j < c2; j++) {
+            mul[i][j] = 0;
+            for (k = 0; k < c1; k++)
+                mul[i][j] += A[i][k] * B[k][j];
+        }
+    
+    printf("Multiplication Completed\n");
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t t1, t2;
+    int i, j;
+    
+    printf("Enter the no of rows and columns of Matrix A: ");
+    scanf("%d%d", &r1, &c1);
+    
+    printf("Enter the no of rows and columns of Matrix B: ");
+    scanf("%d%d", &r2, &c2);
+    
+    if (c1 != r2) {
+        printf("Matrix multiplication not possible\n");
+        return 0;
+    }
+    
+    if (r1 != r2 || c1 != c2) {
+        printf("Matrix addition not possible\n");
+        return 0;
+    }
+    
+
+    srand(time(NULL));
+    printf("Matrix A elements (random):\n");
+    for (i = 0; i < r1; i++) {
+        for (j = 0; j < c1; j++) {
+            A[i][j] = rand() % 10 + 1;
+            printf("%d ", A[i][j]);
+        }
+        printf("\n");
+    }
+    
+    printf("Matrix B elements (random):\n");
+    for (i = 0; i < r2; i++) {
+        for (j = 0; j < c2; j++) {
+            B[i][j] = rand() % 10 + 1;
+            printf("%d ", B[i][j]);
+        }
+        printf("\n");
+    }
+    
+    pthread_create(&t1, NULL, mat_add, NULL);
+    pthread_create(&t2, NULL, mat_mul, NULL);
+    
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    
+    printf("\nMatrix addition result:\n");
+    for (i = 0; i < r1; i++) {
+        for (j = 0; j < c1; j++)
+            printf(" %d ", add[i][j]);
+        printf("\n");
+    }
+    
+    printf("\nMatrix multiplication result:\n");
+    for (i = 0; i < r2; i++) {
+        for (j = 0; j < c2; j++)
+            printf(" %d ", mul[i][j]);
+        printf("\n");
+    }
+    
+    return 0;
+}
+[23bcs065@mepcolinux ex6]$gcc -pthread -[Kmat.c -o mat
+[23bcs065@mepcolinux ex6]$./mat
+Enter the no of rows and columns of Matrix A: 3 3
+Enter the no of rows and columns of Matrix B: 3 3
+Matrix A elements:
+1 5 7 
+4 7 3 
+1 1 4 
+Matrix B elements:
+4 3 3 
+7 6 3 
+5 2 9 
+Addition Completed
+Multiplication Completed
+
+Matrix addition result:
+ 5  8  10 
+ 11  13  6 
+ 6  3  13 
+
+Matrix multiplication result:
+ 74  47  81 
+ 80  60  60 
+ 31  17  42 
+[23bcs065@mepcolinux ex6]$cat sum1.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+
+#define MAX 1000
+
+int arr[MAX];
+int n, i, thread_count;
+long global_sum = 0;
+long thread;
+pthread_mutex_t mutex;
+
+void* partial_sum(void* rank) {
+    long my_rank = (long)rank;
+    
+    int local_n = n / thread_count;
+    int first = my_rank * local_n;
+    int last = (my_rank == thread_count - 1) ? n - 1 : first + local_n - 1;
+    
+    long local_sum = 0;
+    
+    printf("Thread %ld: First index=%d, Last index=%d\n", my_rank, first, last);
+    
+    for (i = first; i <= last; i++)
+        local_sum += arr[i];
+    
+    pthread_mutex_lock(&mutex);
+    global_sum += local_sum;
+    pthread_mutex_unlock(&mutex);
+    
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t* thread_handles;
+    pthread_mutex_init(&mutex, NULL);
+    
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+    
+    srand(time(NULL));
+    printf("Generated elements: ");
+    for (i = 0; i < n; i++) {
+        arr[i] = rand() % 100 + 1;  
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    
+    printf("Enter number of threads: ");
+    scanf("%d", &thread_count);
+    
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
+    
+    for (thread = 0; thread < thread_count; thread++)
+        pthread_create(&thread_handles[thread], NULL, partial_sum, (void*)thread);
+    
+    for (thread = 0; thread < thread_count; thread++)
+        pthread_join(thread_handles[thread], NULL);
+    
+    printf("\nTotal Sum = %ld\n", global_sum);
+    
+    pthread_mutex_destroy(&mutex);
+    free(thread_handles);
+    
+    return 0;
+}
+[23bcs065@mepcolinux ex6]$gcc -pthread sum1.c -o sum
+[23bcs065@mepcolinux ex6]$./sum
+Enter number of elements: 10
+Generated elements: 63 64 41 34 85 63 22 63 51 74 
+Enter number of threads: 3
+Thread 0: First index=0, Last index=2
+Thread 1: First index=3, Last index=5
+Thread 2: First index=6, Last index=9
+
+Total Sum = 560
+[23bcs065@mepcolinux ex6]$./sum
+Enter number of elements: 10
+Generated elements: 98 14 64 10 2 80 49 66 66 32 
+Enter number of threads: 5
+Thread 0: First index=0, Last index=1
+Thread 1: First index=2, Last index=3
+Thread 3: First index=6, Last index=7
+Thread 2: First index=4, Last index=5
+Thread 4: First index=8, Last index=9
+
+Total Sum = 481
+[23bcs065@mepcolinux ex6]$exit
+exit
+
+Script done on Tuesday 03 March 2026 11:28:40 AM IST

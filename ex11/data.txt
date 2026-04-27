@@ -1,0 +1,6 @@
+OpenMP is easy.
+Producer consumer is a classic problem.
+Atomic ensures safe updates.
+Critical section is used to prevent race condition.
+gfhghgfhf fghgd fdgfgd
+
