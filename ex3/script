@@ -1,0 +1,141 @@
+ada@ada:~/23bcs065/ex3$ cat 1.c
+#include<stdio.h>
+#include<string.h>
+#include<mpi.h>
+
+const int MAX_STRING=100;
+int main(){
+   char msg[100];
+   int comm_size;
+   int rank;
+   MPI_Init(NULL,NULL);
+   MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
+   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+   int i;
+   if(rank!=0){
+      sprintf(msg,"Hello from process %d\n",rank);
+      MPI_Send(msg,strlen(msg)+1,MPI_CHAR,0,0,MPI_COMM_WORLD);
+   }
+   else{
+      printf("Helllo from process %d\n",rank);
+      for(i=1;i<comm_size;i++){
+	 MPI_Recv(msg,100,MPI_CHAR,i,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	 printf("%s\n",msg);
+      }
+   }
+   MPI_Finalize();
+}
+ada@ada:~/23bcs065/ex3$ mpicc 1.c
+ada@ada:~/23bcs065/ex3$ mpiexec --oversubsribe -n 15 ./a.out
+mpiexec: Error: unknown option "--oversubsribe"
+Type 'mpiexec --help' for usage.
+ada@ada:~/23bcs065/ex3$ mpiexec --oversubscribe -n 15 ./a.out
+Helllo from process 0
+Hello from process 1
+
+Hello from process 2
+
+Hello from process 3
+
+Hello from process 4
+
+Hello from process 5
+
+Hello from process 6
+
+Hello from process 7
+
+Hello from process 8
+
+Hello from process 9
+
+Hello from process 10
+
+Hello from process 11
+
+Hello from process 12
+
+Hello from process 13
+
+Hello from process 14
+
+ada@ada:~/23bcs065/ex3$ cat 2.c
+#include<stdio.h>
+#include<string.h>
+#include<mpi.h>
+#include<ctype.h>
+int main()
+{
+	char str[100];
+	char in_str[100];
+	int comm_size;
+	int my_rank;
+	MPI_Init(NULL,NULL);
+	MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
+	MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
+        
+	MPI_Status status;
+	if(my_rank==1)
+	{
+		sprintf(str,"Welcome To Ada Lab");
+		MPI_Send(str,strlen(str)+1,MPI_CHAR,0,1,MPI_COMM_WORLD);
+	}
+	else if(my_rank==2)
+        {
+                sprintf(str,"malayalams");
+                MPI_Send(str,strlen(str)+1,MPI_CHAR,0,2,MPI_COMM_WORLD);
+        }
+	else if(my_rank==3)
+        {
+                sprintf(str,"Good Morning");
+                MPI_Send(str,strlen(str)+1,MPI_CHAR,0,1,MPI_COMM_WORLD);
+        }
+	else if(my_rank==4)
+        {
+                sprintf(str,"level");
+                MPI_Send(str,strlen(str)+1,MPI_CHAR,0,2,MPI_COMM_WORLD);
+        }
+	else
+	{
+		int i,j;
+		printf("Master process :%d\n",my_rank);
+		for(i=1;i<comm_size;i++)
+		{
+			MPI_Recv(str,100,MPI_CHAR,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&status);
+			if(status.MPI_TAG==1)
+			{
+				for(j=0;str[j]!='\0';j++)
+				{
+					str[j]=toupper(str[j]);
+				}
+				printf("Result:%s from process %d\n",str,status.MPI_SOURCE);
+			}
+			else if(status.MPI_TAG==2)
+			{
+				for(j=strlen(str)-1;j>=0;j--)
+				{
+					in_str[j]=str[j];
+				}
+				if(strcmp(str,in_str)==0)
+				{
+					printf("Result:%s is a  Palindrome from %d\n",str,status.MPI_SOURCE);
+				}
+				else
+				{
+					printf("Result:%s is  Not palindrome from process %d\n",str,status.MPI_SOURCE);
+				}
+			}
+		}
+	}
+	MPI_Finalize();
+
+}
+ada@ada:~/23bcs065/ex3$ mpicc 2.c
+ada@ada:~/23bcs065/ex3$ mpiexec --oversubscribe -n 5 ./a.out
+Master process :0
+Result:WELCOME TO ADA LAB from process 1
+Result:malayalams is  Not palindrome from process 2
+Result:GOOD MORNING from process 3
+Result:level is  Not palindrome from process 4
+ada@ada:~/23bcs065/ex3$ exit
+
